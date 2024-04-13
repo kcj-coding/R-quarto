@@ -1,0 +1,254 @@
+---
+title: |  
+  | Presentation
+  | About things
+subtitle: "By Kelvin Chilvers-Jones"
+format:
+  revealjs: 
+    slide-number: true
+editor: visual
+self-contained: true # true so that only 1 file is generated (not folder of iles)
+---
+
+## Contents {transition="slide"}
+::: incremental
+- Content 1
+-   Tables
+- Visualisations
+:::
+
+## Content 1 {.smaller transition="slide"}
+::: panel-tabset
+### Details
+- Some text
+- Some more text
+
+### Map
+```{r}
+#| echo: false
+#| fig-height: 4
+library(leaflet)
+
+lat <- c(51.5058238, 52.4124425)
+lng <- c(-0.1272833, -1.5090595)
+labels <- c("London", "Coventry")
+
+df_map <- data.frame(lat=lat, lng=lng, labels=labels)
+
+leaflet(data=df_map) %>%
+  setView(-1.2810369, 51.7656071, zoom = 7) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addMarkers(lng=~lng, lat=~lat, popup=~as.character(labels), label=~as.character(labels)) %>%
+  addCircles(lng = ~lng, lat = ~lat, weight = 1,
+    radius = 5*1e2)#, popup = "UCLan - it's great!"
+  #)
+```
+
+### Code
+- R code
+
+``` r
+# Define a server for the Shiny app
+function(input, output) {
+  
+  # Fill in the spot we created for a plot
+  output$graph <- renderPlot({
+    # Render a barplot
+  })
+}
+```
+- Python code, with code highlighting
+
+``` {.python code-line-numbers="4-5|7|10"}
+import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.arange(0, 2, 0.01)
+theta = 2 * np.pi * r
+fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+ax.plot(theta, r)
+ax.set_rticks([0.5, 1, 1.5, 2])
+ax.grid(True)
+plt.show()
+```
+
+:::
+
+## Tables {.smaller transition="slide"}
+::: panel-tabset
+### Overview
+Ways of displaying tables
+
+### Table 1
+| Transition | Description                                                            |
+|------------|------------------------------------------------------------------------|
+| `none`     | No transition (default, switch instantly)                              |
+| `fade`     | Cross fade                                                             |
+| `slide`    | Slide horizontally                                                     |
+| `convex`   | Slide at a convex angle                                                |
+| `concave`  | Slide at a concave angle                                               |
+| `zoom`     | Scale the incoming slide so it grows in from the center of the screen. |
+
+### Table 2
+```{r}
+knitr::kable(mtcars)
+```
+
+:::
+
+
+## Visualisations {.smaller transition="slide"}
+::: panel-tabset
+### Graph
+Make clear, easy to understand visualisations with annotations as needed
+
+```{r}
+library(ggplot2)
+
+# ice cream sales data
+sales <- c(5,5,10,5,15,20,35,40,35,20,10,5)
+type <- c("not summer", "not summer", "not summer", "not summer", "summer", "summer", "summer", "summer", "summer", "not summer", "not summer", "not summer")
+months <- c("Jan-23","Feb-23","Mar-23","Apr-23","May-23","Jun-23","Jul-23","Aug-23","Sep-23","Oct-23","Nov-23","Dec-23")
+
+# make df
+df_ices <- data.frame(sales=sales, months=months, type=type)
+
+# order months
+df_ices$months <- factor(df_ices$months, levels=c("Jan-23","Feb-23","Mar-23","Apr-23","May-23","Jun-23","Jul-23","Aug-23","Sep-23","Oct-23","Nov-23","Dec-23"))
+
+ggplot(df_ices, aes(months, sales, color = sales)) +
+  #geom_path(df_ices, aes(x=months, y=sales, colour = sales)) +
+  geom_point() +
+  #geom_smooth(formula = y ~ x, method = "loess") +
+  #geom_smooth(aes(fill = factor(sales), color = sales)) + 
+  #stat_smooth(formula = y ~ x, fun = mean, group =1, method = "lm") +
+  geom_rect(aes(xmin=5,xmax=9,ymin=-Inf,ymax=Inf),alpha=0.1,fill="orange")+
+  stat_summary(geom = "line", fun = mean, group = 1) +
+  annotate("text", x = 3, y = 35, label = "Sales increase in warmer months\n and summer holidays") +
+  annotate("segment", x = 5, y = 25, xend = 7, yend = 40,
+         arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
+  annotate("text", x = 11, y = 35, label = "Sales decrease\n in autumn/winter") +
+  annotate("segment", x = 10, y = 30, xend = 12, yend = 10,
+         arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
+  theme_classic()+
+  labs(title = "Ice cream sales (thou) for 2023 in Portsmouth, U.K", y = "sales/thou")+
+  scale_fill_discrete(name = "sales/thou") +
+  theme(legend.position="none") # remove legend
+```
+
+### Code 
+Code for determining p-value
+```r
+library(dplyr)
+library(ggplot2)
+
+# ice cream sales data
+sales <- c(5,5,10,5,15,20,35,40,35,20,10,5)
+type <- c("not summer", "not summer", "not summer", "not summer", "summer", "summer", "summer", "summer", "summer", "not summer", "not summer", "not summer")
+months <- c("Jan-23","Feb-23","Mar-23","Apr-23","May-23","Jun-23","Jul-23","Aug-23","Sep-23","Oct-23","Nov-23","Dec-23")
+
+# make df
+df_ices <- data.frame(sales=sales, months=months, type=type)
+
+summer_months <- c("May-23","Jun-23","Jul-23","Aug-23", "Sep-23")
+
+# get sum of sales for summer
+sum_sales <- df_ices %>%
+  filter(months %in% summer_months)
+
+# get sum of sales for not summer
+not_sum_sales <- df_ices %>%
+  filter(!(months %in% summer_months))
+
+# compare numbers and get p-value
+sum_sales <- sum(sum_sales$sales)
+not_sum_sales <- sum(not_sum_sales$sales)
+
+
+# Hypothesis to test: sales are higher in the summer
+
+proa<-prop.test(not_sum_sales,sum_sales, p=0.5, correct = FALSE)
+#proa
+proa <- list(proa)
+proa <- as.data.frame(matrix(unlist(proa),nrow=length(proa),byrow=TRUE))
+colnames(proa) <- c("X-squared","df","p-value","prop 1","prop 2","95pct conf int1","95pct conf int2","hypothesis","test name","vectors")
+
+########## graph the p-value ##########################
+graph <- rbind(proa$`p-value`)
+graph <- as.data.frame(as.numeric(graph))
+colnames(graph) <- c("p-value")
+graph$xaxis <- c("Summer compared to not summer")
+
+display<- ggplot(graph,aes(x=xaxis,y=`p-value`))+
+  geom_bar(aes(fill=xaxis),position="dodge",stat="identity")+
+  geom_text(aes(label=round(`p-value`,2)),vjust=-1.0,size=3)+
+  scale_fill_manual(values=alpha(c("#CD2456","#14022E","#CD1234")))+
+  #ylim(0,max(graph$`p-value`)+1)+
+  theme_classic(base_size=10)+
+  theme(legend.position = "none")+
+  labs(x="AB Test",y="P-value",title="P-value for AB test")
+```
+
+### Hypothesis test
+p-value of < 0.05 means accept H1 alternative hypothesis of "sales increase in summer"
+```{r}
+library(dplyr)
+library(ggplot2)
+
+summer_months <- c("May-23","Jun-23","Jul-23","Aug-23", "Sep-23")
+
+# get sum of sales for summer
+sum_sales <- df_ices %>%
+  filter(months %in% summer_months)
+
+# get sum of sales for not summer
+not_sum_sales <- df_ices %>%
+  filter(!(months %in% summer_months))
+
+# compare numbers and get p-value
+sum_sales <- sum(sum_sales$sales)
+not_sum_sales <- sum(not_sum_sales$sales)
+
+# Hypothesis to test: sales are higher in the summer
+
+proa<-prop.test(not_sum_sales,sum_sales, p=0.5, correct = FALSE)
+#proa
+proa <- list(proa)
+proa <- as.data.frame(matrix(unlist(proa),nrow=length(proa),byrow=TRUE))
+colnames(proa) <- c("X-squared","df","p-value","prop 1","prop 2","95pct conf int1","95pct conf int2","hypothesis","test name","vectors")
+
+########## graph the p-value ##########################
+graph <- rbind(proa$`p-value`)
+graph <- as.data.frame(as.numeric(graph))
+colnames(graph) <- c("p-value")
+graph$xaxis <- c("Summer compared to not summer")
+
+ggplot(graph,aes(x=xaxis,y=`p-value`))+
+  geom_bar(aes(fill=xaxis),position="dodge",stat="identity")+
+  geom_text(aes(label=round(`p-value`,2)),vjust=-1.0,size=3)+
+  scale_fill_manual(values=alpha(c("#CD2456","#14022E","#CD1234")))+
+  #ylim(0,max(graph$`p-value`)+1)+
+  theme_classic(base_size=10)+
+  theme(legend.position = "none")+
+  labs(x="AB Test",y="P-value",title="P-value for AB test")
+```
+
+### Boxplot of data
+
+```{r}
+library(plotly)
+
+t <- ggplot(df_ices,aes(x=type,y=sales))+
+  geom_boxplot(outlier.shape = NA)+ # remove outliers when jitter
+  #geom_jitter(height = 0, width = 0.0)+
+  geom_point() +
+  theme_classic()+
+  labs(y="sales/thou",x="season")
+
+ggplotly(t)
+```
+
+:::
+
+## Questions
+Any questions?
