@@ -1,0 +1,458 @@
+---
+title: "Text analysis example"
+format: html
+toc: true
+toc-location: left
+editor: visual
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F)
+#library(GGally)
+#library(ggraph)
+#library(igraph)
+library(Matrix)
+#library(network)
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(quanteda)
+library(tm)
+library(vader)
+library(topicmodels)
+library(tidytext)
+library(lexRankr)
+library(DT)
+library(wordcloud)
+library(plotly)
+#library(quarto)
+#library(forcats)
+#library(corpus)
+```
+
+```{r code,include=FALSE, echo=FALSE}
+
+# load data csv, xlsx or text
+text <- "Red Funnel was formed in 1861 as the ‘Original Isle of Wight ferry operator’. Today, we carry 3.4M passengers and 860,000 vehicles across the Solent each year. The Company operates 365 days a year, with 30,000 sailings between Southampton on the UK mainland and East and West Cowes on the Isle of Wight. Our fleet consists of modern purpose-built Ro-Pax vehicle ferries and Red Jet Hi-Speed passenger catamarans. Catering and retail services are provided in-house.
+
+We are proud to offer our customers award-winning ferry travel to the Isle of Wight. If you’re looking to take a UK break somewhere beautiful, we’ll sail you from Southampton to the Isle of Wight in under an hour with a vehicle, or 30 minutes if you’re travelling as a foot passenger. You’ll enjoy a range of onboard facilities during a vehicle ferry crossing, including our premium Signature Lounge, pet-friendly lounge, licensed bar, café and retail shop plus outdoor sun decks.Aside from getting to the Isle of Wight, we also offer a range of fantastic IOW holiday and accommodation deals, alongside discounted attraction and event tickets plus a host of special offers for the perfect trip to the Island. All that’s left to do now is explore what you could enjoy during a visit and book your ferry to the Isle of Wight."
+
+text <- data.frame(text=text)
+file <- "text found on https://www.redfunnel.co.uk"
+
+#file <- "text.csv"
+#text <- read.csv(file)
+
+#text <- text$reviewText
+
+#text <- text[1:250]
+
+#colnames(text) <- "text"
+
+split_by_sentence <- "Yes" 
+if (split_by_sentence == "Yes"){
+  texts <- strsplit(text$text, '\\.(?=\\s|$)', perl = TRUE) # positive lookahead to split only where white space follows or end of string, PERL TRUE for PCRE support
+  text_df <- data.frame(text=texts)
+  colnames(text_df) <- c("text")
+  # add fullstop to end of string
+  text_df$text <- paste0(text_df$text, ".")
+} else{
+text_df <- text
+}
+
+text <- text_df$text
+
+type <- "Term" # specify Document or Term for data types
+
+###########################################################################
+# get count of words, to display on bar charts
+# remove punctuation
+
+one_word <- VCorpus(VectorSource(text))
+
+if (type == "Document"){
+matrix <- DocumentTermMatrix(one_word, control=list(removePunctuation=TRUE,stopwords=TRUE)) # or DocumentTermMatrix
+} else{
+  matrix <- TermDocumentMatrix(one_word, control=list(removePunctuation=TRUE,stopwords=TRUE)) # or DocumentTermMatrix
+}
+
+counts <- colSums(as.matrix(matrix))
+words <- matrix$Terms
+
+m1 <- as.matrix(matrix)
+
+# Sum all columns(words) to get frequency
+words_frequency <- colSums(as.matrix(matrix))
+
+#run frequencies
+word.freq <- sort(rowSums(m1), decreasing=T)
+
+#convert matrix to dataframe
+frequencies<-as.data.frame(as.table(word.freq))
+
+frequencies1 <- data.frame(lapply(frequencies, as.character), stringsAsFactors=FALSE)
+frequencies1$type <- "unigram\n one word"
+
+###########################################################################
+# get count of 2 word phrases
+BigramTokenizer <-
+  function(x)
+    unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
+
+if (type == "Document"){
+tdm <- DocumentTermMatrix(one_word, control = list(tokenize = BigramTokenizer))
+} else{
+  tdm <- TermDocumentMatrix(one_word, control = list(tokenize = BigramTokenizer))
+}
+
+
+m2 <- as.matrix(tdm)
+
+# Sum all columns(words) to get frequency
+words_frequency_2 <- colSums(as.matrix(tdm))
+
+#run frequencies
+word.freq.2 <- sort(rowSums(m2), decreasing=T)
+
+#convert matrix to dataframe
+frequencies_2<-as.data.frame(as.table(word.freq.2))
+
+frequencies2 <- data.frame(lapply(frequencies_2, as.character), stringsAsFactors=FALSE)
+frequencies2$type <- "bigram\n two words"
+
+###########################################################################
+# get count of 3 word phrases
+TrigramTokenizer <-
+  function(x)
+    unlist(lapply(ngrams(words(x), 3), paste, collapse = " "), use.names = FALSE)
+
+if (type == "Document"){
+tdm <- DocumentTermMatrix(one_word, control = list(tokenize = TrigramTokenizer))
+} else{
+  tdm <- TermDocumentMatrix(one_word, control = list(tokenize = TrigramTokenizer))
+}
+
+
+m3 <- as.matrix(tdm)
+
+# Sum all columns(words) to get frequency
+words_frequency_3 <- colSums(as.matrix(tdm))
+
+#run frequencies
+word.freq.3 <- sort(rowSums(m3), decreasing=T)
+
+#convert matrix to dataframe
+frequencies_3<-as.data.frame(as.table(word.freq.3))
+
+frequencies3 <- data.frame(lapply(frequencies_3, as.character), stringsAsFactors=FALSE)
+frequencies3$type <- "trigram\n three words"
+
+###########################################################################
+# get word sentiment, and display in charts
+# R VADER compound score
+#vader_score <- get_vader(text)
+vader_score <- vader_df(text)
+vader_score <- select(vader_score,text,compound)#vader_score$compound
+
+score_type <- ifelse(vader_score$compound < -0.25, "Negative",ifelse(vader_score$compound > 0.25,"Positive","Neutral"))
+
+score_type <- data.frame(score_type)
+colnames(score_type) <- "sentiment"
+
+score_type_tot <- score_type %>%
+  group_by(sentiment) %>%
+  summarise(count=n())
+
+senti_table <- cbind(vader_score,score_type)
+
+###########################################################################
+# get topic modelling (LDA)
+# tidymodels
+topic_num <- 4
+
+topics_matrix <- DocumentTermMatrix(one_word, control=list(removePunctuation=TRUE,stopwords=TRUE))
+
+topics <- LDA(topics_matrix, k = topic_num, control = list(seed = 1234))
+
+# tidy this
+topics <- tidy(topics)
+
+# sort by topic and beta descending, get top 10
+topic_df <- data.frame()
+for (i in (1:topic_num)){
+  topic1 <- topics %>%
+    filter(topic == i)
+  
+  topic1 <- topic1[order(topic1$beta, decreasing = TRUE),]
+  
+  topic1 <- topic1[1:10,]
+  
+  # generate estimated topic titles
+  topic1$title <- paste(topic1$term[1], topic1$term[2], topic1$term[3], sep=" ")
+  
+  topic_df <- rbind(topic_df,topic1)
+}
+
+###########################################################################
+# summarise text (extractive summarisation)
+#LEXRANK THE TEXT FOR N NUMBER OF SUMMARIES
+top_sentences <- lexRank(text, n=3)
+
+###########################################################################
+# put text in table, and allow searching by word/phrase (and highlight?) DT
+datatable(top_sentences, extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  ))
+
+# get wordcloud
+#wordcloud2(frequencies)
+# set colouring
+#pal <- brewer.pal(9,"BuGn")
+
+###########################################################################
+
+# word associations for top 2 words
+top_words_asso <- frequencies1[1:2,]
+top_words_asso <- top_words_asso$Var1
+
+
+word1_asso <- data.frame(findAssocs(matrix, top_words_asso[1], 0.95)) # find terms correlated with "room" 
+
+word1_asso <- word1_asso %>%
+  mutate(word = rownames(word1_asso))
+
+word1_asso_graph <- word1_asso[1:10,] %>%
+  ggplot(aes(x=reorder(word,word1_asso[1:10,1]),y=word1_asso[1:10,1])) + geom_point(size=4) + 
+  coord_flip() + ylab('Correlation') + xlab('Term')
+```
+
+```{r functions, include=FALSE, echo=FALSE}
+
+r_nchar_histogram_function <- function(df,x_df){
+  tt <- ggplot(df,aes(x=x_df))+
+    geom_histogram(binwidth = 1, alpha = 0.8)+
+    theme_classic()+
+    labs(x="Number of characters per paragraph",y="Number of paragraphs")
+  return (tt)
+}
+
+####################################################################################################
+
+r_bar_graph_function <- function(df,x_df,y_df,xlab,ylab,title){
+  tt <- ggplot(df,aes(x=reorder(x_df, -y_df),y=y_df))+
+    geom_bar(aes(fill="#CD2456"),position="dodge",stat="identity",width=0.5)+
+    geom_text(aes(label=paste(round(y_df,0))),position=position_dodge(width=.9),vjust=-0.5,size=3.5)+
+    scale_fill_manual(values=alpha(c("#CD2456","#14022E")),name="xyz")+
+    theme_classic()+
+    theme(legend.position="none")+
+    labs(x=xlab,y=ylab,title=title)
+  return (tt)
+}
+
+####################################################################################################
+
+r_bar_graph_function_flip <- function(df,x_df,y_df,xlab,ylab,title){
+  tt <- ggplot(df,aes(x=reorder(x_df, y_df),y=y_df))+
+    geom_bar(aes(fill="#CD2456"),position="dodge",stat="identity",width=0.5)+
+    geom_text(aes(label=paste(round(y_df,0))),position=position_dodge(width=.9),vjust=0.5, hjust=-1.0, size=3.5)+
+    scale_fill_manual(values=alpha(c("#CD2456","#14022E")),name="xyz")+
+    coord_flip()+
+    theme_classic()+
+    theme(legend.position="none")+
+    labs(x=xlab,y=ylab,title=title)
+  return (tt)
+}
+
+####################################################################################################
+
+r_scatter_plot_function <- function(df,x_df,y_df,xlab,ylab,title){
+  tt <- ggplot(df,aes(x=x_df,y=y_df, color=y_df))+
+    geom_point(position="identity",stat="identity")+
+    geom_jitter()+
+    #scale_x_continuous(breaks=0:max(y_df))+
+    coord_flip()+
+    #scale_y_continuous(breaks=0:max(x_df))+
+    theme_classic()+
+    scale_color_gradient(low="blue", high="red")+
+    #scale_color_brewer(palette="YlGn")+
+    #scale_color_manual(values = c("blue","red"))+
+    #theme(legend.position="none")+
+    labs(x=xlab,y=ylab,title=title)
+  return (tt)
+}
+
+####################################################################################################
+
+word_asso_graph_function <- function(word){
+  word1 <- data.frame(findAssocs(matrix, word, 0.1)) # find terms correlated with "room" 
+
+word1 <- word1 %>%
+  mutate(word = rownames(word1))
+
+word1_asso_graph <- word1[1:10,] %>%
+  ggplot(aes(x=reorder(word,word1[1:10,1]),y=word1[1:10,1])) + geom_point(size=4) + 
+  coord_flip()+
+  theme_classic()+
+  ylim(min(word1[1:10,1]),1)+
+  labs(x="Word",y="Correlation score",title=paste("Top 10 words associated with ",word,sep=""))
+return(word1_asso_graph)
+}
+
+####################################################################################################
+
+topic_models_graph <- function(){
+  tt1 <- ggplot(topic_df, aes(reorder(topic_df$term,topic_df$beta),topic_df$beta,fill=topic_df$title))+
+    geom_bar(position="dodge",stat="identity",width=0.5)+
+    #geom_text(aes(label=paste(round(topic_df$beta,0))),position=position_dodge(width=.9),vjust=-0.5,size=3.5)+
+    #scale_fill_manual(values=alpha(c("#CD2456","14022E")),name="xyz")+
+    coord_flip()+
+    facet_wrap(~topic_df$title, scales = "free")+
+    theme_classic()+
+    theme(legend.position="none")+
+    labs(x="",y="",title="")
+  return(tt1)
+}
+```
+
+# Word text analysis
+
+For the text from `r file` some analysis has been completed. This is shown below.
+
+# Number of characters per sentence/paragraph
+
+```{r hist1, echo=FALSE}
+dat_to_use <- text_df
+r_nchar_histogram_function(dat_to_use,nchar(dat_to_use$`text`))
+
+```
+
+# Count of words - top 10
+
+The top 10 words found by their number of occurrences within the text is shown below. There are `r nrow(frequencies)` unique words used.
+
+```{r graph1, echo=FALSE}
+dat_to_use <- frequencies[1:10,]
+r_bar_graph_function(dat_to_use,dat_to_use$`Var1`,dat_to_use$`Freq`,"Word","Count","Top 10 words")
+
+```
+
+# Wordcloud
+
+A wordcloud of the text is provided below.
+
+```{r wc1, echo=FALSE, message=FALSE, warning=FALSE}
+# get wordcloud
+wordcloud(words = frequencies$Var1, frequencies$Freq, min.freq = 1,           
+          max.words=nrow(frequencies), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
+```
+
+# Count of two word phrases - top 5
+
+The top 5 two-word phrases, by the number of times they appear are below. There are `r nrow(frequencies2)` two word phrases.
+
+```{r graph2, echo=FALSE}
+dat_to_use <- frequencies_2[1:10,]
+
+# split space as new line
+dat_to_use$`Var1` <- gsub(" ", "\n", dat_to_use$`Var1`)
+
+# sort by values
+dat_to_use <- dat_to_use[order(-dat_to_use$`Freq`),]
+
+r_bar_graph_function(dat_to_use,dat_to_use$`Var1`,dat_to_use$`Freq`,"Phrase","Count","Top 5 two word phrases")
+r_bar_graph_function_flip(dat_to_use,dat_to_use$`Var1`,dat_to_use$`Freq`,"Phrase","Count","Top 5 two word phrases")
+
+```
+# Count of unique phrases by type
+It may not look like it, but there are `r sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq))` datapoints on this graph.
+<br>
+Of these:
+<br>
+Unigram is: `r sum(as.numeric(frequencies1$Freq))` which is `r round(sum(as.numeric(frequencies1$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
+<br>
+Biigram is: `r sum(as.numeric(frequencies2$Freq))` which is `r round(sum(as.numeric(frequencies2$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
+<br>
+Trigram is: `r sum(as.numeric(frequencies3$Freq))` which is `r round(sum(as.numeric(frequencies3$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
+```{r unqphrase, echo=FALSE, message=FALSE, warning=FALSE}
+
+# join all types together
+# frequencies1, frequencies2, frequencies3
+
+freqs <- rbind(frequencies1, frequencies2, frequencies3)
+
+level_order <- factor(freqs$type,level=c("trigram\n three words", "bigram\n two words", "unigram\n one word"))
+
+r_scatter_plot_function(freqs,level_order,as.numeric(freqs$`Freq`),"Type","Count","Count of unique occurrences")
+```
+
+# Wordcloud - two word phrases
+
+A wordcloud of the text is provided below.
+
+```{r wc2, echo=FALSE, message=FALSE, warning=FALSE}
+# get wordcloud
+#plot.new()
+#frame()
+
+# get wordcloud
+wordcloud(words = frequencies_2$Var1, frequencies_2$Freq, min.freq = 1,           
+          max.words=nrow(frequencies_2), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
+```
+
+# Sentiment of text
+
+The sentiment types of the text are shown below. There are `r length(unique(score_type$sentiment))` types of sentiment and the sentiment types are: `r unique(score_type$sentiment)`.
+
+```{r sentiment, echo=FALSE}
+r_bar_graph_function(score_type_tot,score_type_tot$`sentiment`,score_type_tot$`count`,"Sentiment","Count","Count of sentiment")
+```
+
+Below is the table of text and associated sentiment
+
+```{r, echo=FALSE}
+datatable(senti_table, extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  ))
+```
+
+# Topic modelling
+
+Estimated topics from the text, highest 10 scoring words on graph. There are `r topic_num` topics chosen.
+
+```{r tm, echo=FALSE, message=FALSE, warning=FALSE}
+topic_models_graph()
+```
+
+# Top 3 sentences
+
+The top 3 scoring (summary extraction) sentences are below.
+
+```{r top3, echo=FALSE}
+datatable(top_sentences, extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  ))
+```
+
+# Word associations for top 2 words
+
+## Word 1
+
+Word 1 is `r top_words_asso[1]` and the top 10 words associated with it are below
+
+```{r word1, echo=FALSE}
+word1_choice <- top_words_asso[1]
+word_asso_graph_function(word1_choice)
+```
+
+## Word 2
+
+Word 2 is `r top_words_asso[2]` and the top 10 words associated with it are below
+
+```{r word2, echo=FALSE}
+word2_choice <- top_words_asso[2]
+word_asso_graph_function(word2_choice)
+```

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.335">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-04-26">
+
+<title>Text analysis example</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="text_analysis_quarto_files/libs/clipboard/clipboard.min.js"></script>
+<script src="text_analysis_quarto_files/libs/quarto-html/quarto.js"></script>
+<script src="text_analysis_quarto_files/libs/quarto-html/popper.min.js"></script>
+<script src="text_analysis_quarto_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="text_analysis_quarto_files/libs/quarto-html/anchor.min.js"></script>
+<link href="text_analysis_quarto_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="text_analysis_quarto_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="text_analysis_quarto_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="text_analysis_quarto_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="text_analysis_quarto_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+<script src="text_analysis_quarto_files/libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+<link href="text_analysis_quarto_files/libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
+<script src="text_analysis_quarto_files/libs/datatables-binding-0.32/datatables.js"></script>
+<script src="text_analysis_quarto_files/libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<link href="text_analysis_quarto_files/libs/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+<link href="text_analysis_quarto_files/libs/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
+<script src="text_analysis_quarto_files/libs/dt-core-1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="text_analysis_quarto_files/libs/jszip-1.13.6/jszip.min.js"></script>
+<script src="text_analysis_quarto_files/libs/pdfmake-1.13.6/pdfmake.js"></script>
+<script src="text_analysis_quarto_files/libs/pdfmake-1.13.6/vfs_fonts.js"></script>
+<link href="text_analysis_quarto_files/libs/dt-ext-buttons-1.13.6/css/buttons.dataTables.min.css" rel="stylesheet">
+<script src="text_analysis_quarto_files/libs/dt-ext-buttons-1.13.6/js/dataTables.buttons.min.js"></script>
+<script src="text_analysis_quarto_files/libs/dt-ext-buttons-1.13.6/js/buttons.html5.min.js"></script>
+<script src="text_analysis_quarto_files/libs/dt-ext-buttons-1.13.6/js/buttons.colVis.min.js"></script>
+<script src="text_analysis_quarto_files/libs/dt-ext-buttons-1.13.6/js/buttons.print.min.js"></script>
+<link href="text_analysis_quarto_files/libs/crosstalk-1.2.1/css/crosstalk.min.css" rel="stylesheet">
+<script src="text_analysis_quarto_files/libs/crosstalk-1.2.1/js/crosstalk.min.js"></script>
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#word-text-analysis" id="toc-word-text-analysis" class="nav-link active" data-scroll-target="#word-text-analysis">Word text analysis</a></li>
+  <li><a href="#number-of-characters-per-sentenceparagraph" id="toc-number-of-characters-per-sentenceparagraph" class="nav-link" data-scroll-target="#number-of-characters-per-sentenceparagraph">Number of characters per sentence/paragraph</a></li>
+  <li><a href="#count-of-words---top-10" id="toc-count-of-words---top-10" class="nav-link" data-scroll-target="#count-of-words---top-10">Count of words - top 10</a></li>
+  <li><a href="#wordcloud" id="toc-wordcloud" class="nav-link" data-scroll-target="#wordcloud">Wordcloud</a></li>
+  <li><a href="#count-of-two-word-phrases---top-5" id="toc-count-of-two-word-phrases---top-5" class="nav-link" data-scroll-target="#count-of-two-word-phrases---top-5">Count of two word phrases - top 5</a></li>
+  <li><a href="#count-of-unique-phrases-by-type" id="toc-count-of-unique-phrases-by-type" class="nav-link" data-scroll-target="#count-of-unique-phrases-by-type">Count of unique phrases by type</a></li>
+  <li><a href="#wordcloud---two-word-phrases" id="toc-wordcloud---two-word-phrases" class="nav-link" data-scroll-target="#wordcloud---two-word-phrases">Wordcloud - two word phrases</a></li>
+  <li><a href="#sentiment-of-text" id="toc-sentiment-of-text" class="nav-link" data-scroll-target="#sentiment-of-text">Sentiment of text</a></li>
+  <li><a href="#topic-modelling" id="toc-topic-modelling" class="nav-link" data-scroll-target="#topic-modelling">Topic modelling</a></li>
+  <li><a href="#top-3-sentences" id="toc-top-3-sentences" class="nav-link" data-scroll-target="#top-3-sentences">Top 3 sentences</a></li>
+  <li><a href="#word-associations-for-top-2-words" id="toc-word-associations-for-top-2-words" class="nav-link" data-scroll-target="#word-associations-for-top-2-words">Word associations for top 2 words</a>
+  <ul class="collapse">
+  <li><a href="#word-1" id="toc-word-1" class="nav-link" data-scroll-target="#word-1">Word 1</a></li>
+  <li><a href="#word-2" id="toc-word-2" class="nav-link" data-scroll-target="#word-2">Word 2</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Text analysis example</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">April 26, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="word-text-analysis" class="level1">
+<h1>Word text analysis</h1>
+<p>For the text from text found on https://www.redfunnel.co.uk some analysis has been completed. This is shown below.</p>
+</section>
+<section id="number-of-characters-per-sentenceparagraph" class="level1">
+<h1>Number of characters per sentence/paragraph</h1>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/hist1-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="count-of-words---top-10" class="level1">
+<h1>Count of words - top 10</h1>
+<p>The top 10 words found by their number of occurrences within the text is shown below. There are 105 unique words used.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/graph1-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="wordcloud" class="level1">
+<h1>Wordcloud</h1>
+<p>A wordcloud of the text is provided below.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/wc1-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="count-of-two-word-phrases---top-5" class="level1">
+<h1>Count of two word phrases - top 5</h1>
+<p>The top 5 two-word phrases, by the number of times they appear are below. There are 187 two word phrases.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/graph2-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/graph2-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="count-of-unique-phrases-by-type" class="level1">
+<h1>Count of unique phrases by type</h1>
+<p>It may not look like it, but there are 540 datapoints on this graph. <br> Of these: <br> Unigram is: 131 which is 24% of the total <br> Biigram is: 209 which is 39% of the total <br> Trigram is: 200 which is 37% of the total</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/unqphrase-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="wordcloud---two-word-phrases" class="level1">
+<h1>Wordcloud - two word phrases</h1>
+<p>A wordcloud of the text is provided below.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/wc2-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="sentiment-of-text" class="level1">
+<h1>Sentiment of text</h1>
+<p>The sentiment types of the text are shown below. There are 2 types of sentiment and the sentiment types are: Positive, Neutral.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/sentiment-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Below is the table of text and associated sentiment</p>
+<div class="cell">
+<div class="cell-output-display">
+
+<div class="datatables html-widget html-fill-item" id="htmlwidget-c6c24c18dd1ac214d317" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-c6c24c18dd1ac214d317">{"x":{"filter":"none","vertical":false,"extensions":["Buttons"],"data":[["1","2","3","4","5","6","7","8","9"],["Red Funnel was formed in 1861 as the ‘Original Isle of Wight ferry operator’."," Today, we carry 3.4M passengers and 860,000 vehicles across the Solent each year."," The Company operates 365 days a year, with 30,000 sailings between Southampton on the UK mainland and East and West Cowes on the Isle of Wight."," Our fleet consists of modern purpose-built Ro-Pax vehicle ferries and Red Jet Hi-Speed passenger catamarans."," Catering and retail services are provided in-house.","\n\nWe are proud to offer our customers award-winning ferry travel to the Isle of Wight."," If you’re looking to take a UK break somewhere beautiful, we’ll sail you from Southampton to the Isle of Wight in under an hour with a vehicle, or 30 minutes if you’re travelling as a foot passenger."," You’ll enjoy a range of onboard facilities during a vehicle ferry crossing, including our premium Signature Lounge, pet-friendly lounge, licensed bar, café and retail shop plus outdoor sun decks.Aside from getting to the Isle of Wight, we also offer a range of fantastic IOW holiday and accommodation deals, alongside discounted attraction and event tickets plus a host of special offers for the perfect trip to the Island."," All that’s left to do now is explore what you could enjoy during a visit and book your ferry to the Isle of Wight."],[0.34,0,0,0,0,0.477,0.599,0.959,0.494],["Positive","Neutral","Neutral","Neutral","Neutral","Positive","Positive","Positive","Positive"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>text<\/th>\n      <th>compound<\/th>\n      <th>sentiment<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"Bfrtip","buttons":["copy","csv","excel","pdf","print"],"columnDefs":[{"className":"dt-right","targets":2},{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"text","targets":1},{"name":"compound","targets":2},{"name":"sentiment","targets":3}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="topic-modelling" class="level1">
+<h1>Topic modelling</h1>
+<p>Estimated topics from the text, highest 10 scoring words on graph. There are 4 topics chosen.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/tm-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="top-3-sentences" class="level1">
+<h1>Top 3 sentences</h1>
+<p>The top 3 scoring (summary extraction) sentences are below.</p>
+<div class="cell">
+<div class="cell-output-display">
+
+<div class="datatables html-widget html-fill-item" id="htmlwidget-995f88d4dc0e3f2dc5ef" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-995f88d4dc0e3f2dc5ef">{"x":{"filter":"none","vertical":false,"extensions":["Buttons"],"data":[["1","2"],[3,7],["3_1","7_1"],["The Company operates 365 days a year, with 30,000 sailings between Southampton on the UK mainland and East and West Cowes on the Isle of Wight.","If you’re looking to take a UK break somewhere beautiful, we’ll sail you from Southampton to the Isle of Wight in under an hour with a vehicle, or 30 minutes if you’re travelling as a foot passenger."],[0.4999999999999999,0.4999999999999999]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>docId<\/th>\n      <th>sentenceId<\/th>\n      <th>sentence<\/th>\n      <th>value<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"Bfrtip","buttons":["copy","csv","excel","pdf","print"],"columnDefs":[{"className":"dt-right","targets":[1,4]},{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"docId","targets":1},{"name":"sentenceId","targets":2},{"name":"sentence","targets":3},{"name":"value","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="word-associations-for-top-2-words" class="level1">
+<h1>Word associations for top 2 words</h1>
+<section id="word-1" class="level2">
+<h2 class="anchored" data-anchor-id="word-1">Word 1</h2>
+<p>Word 1 is isle and the top 10 words associated with it are below</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/word1-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="word-2" class="level2">
+<h2 class="anchored" data-anchor-id="word-2">Word 2</h2>
+<p>Word 2 is wight and the top 10 words associated with it are below</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="text_analysis_quarto_files/figure-html/word2-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
