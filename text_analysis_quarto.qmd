@@ -5,6 +5,7 @@ toc: true
 toc-location: left
 editor: visual
 date: "`r Sys.Date()`"
+self-contained: true # true so that only 1 file is generated (not folder of files)
 ---
 
 ```{r setup, include=FALSE}
@@ -26,6 +27,7 @@ library(lexRankr)
 library(DT)
 library(wordcloud)
 library(plotly)
+library(reshape2)
 #library(quarto)
 #library(forcats)
 #library(corpus)
@@ -149,7 +151,7 @@ frequencies3 <- data.frame(lapply(frequencies_3, as.character), stringsAsFactors
 frequencies3$type <- "trigram\n three words"
 
 ###########################################################################
-# get word sentiment, and display in charts
+# get sentence sentiment, and display in charts
 # R VADER compound score
 #vader_score <- get_vader(text)
 vader_score <- vader_df(text)
@@ -165,6 +167,56 @@ score_type_tot <- score_type %>%
   summarise(count=n())
 
 senti_table <- cbind(vader_score,score_type)
+
+###########################################################################
+# get word sentiment, and display in charts
+# R VADER compound score
+#vader_score <- get_vader(text)
+vader_score_word <- vader_df(frequencies$Var1)
+vader_score_word <- select(vader_score_word,text,compound)#vader_score$compound
+
+score_type_word <- ifelse(vader_score_word$compound < -0.25, "Negative",ifelse(vader_score_word$compound > 0.25,"Positive","Neutral"))
+
+score_type_word <- data.frame(score_type_word)
+colnames(score_type_word) <- "sentiment"
+
+score_type_tot_word <- score_type_word %>%
+  group_by(sentiment) %>%
+  summarise(count=n())
+
+senti_table_word <- cbind(vader_score_word,score_type_word,frequencies$Freq)
+
+# for comparison cloud
+senti_table_word <- senti_table_word %>%
+  acast(text ~ sentiment, value.var = "frequencies$Freq", fill = 0)
+
+###########################################################################
+# get bigram sentiment, and display in charts
+# R VADER compound score
+#vader_score <- get_vader(text)
+vader_score_bigram <- vader_df(frequencies2$Var1)
+vader_score_bigram <- select(vader_score_bigram,text,compound)#vader_score$compound
+
+# make text a factor
+vader_score_bigram$text <- as.factor(vader_score_bigram$text)
+
+score_type_bigram <- ifelse(vader_score_bigram$compound < -0.25, "Negative",ifelse(vader_score_bigram$compound > 0.25,"Positive","Neutral"))
+
+score_type_bigram <- data.frame(score_type_bigram)
+colnames(score_type_bigram) <- "sentiment"
+
+score_type_tot_bigram <- score_type_bigram %>%
+  group_by(sentiment) %>%
+  summarise(count=n())
+
+senti_table_bigram <- cbind(vader_score_bigram,score_type_bigram,frequencies2$Freq)
+
+# make numeric
+senti_table_bigram$`frequencies2$Freq` <- as.numeric(senti_table_bigram$`frequencies2$Freq`)
+
+# for comparison cloud
+senti_table_bigram <- senti_table_bigram %>%
+  acast(text ~ sentiment, value.var = "frequencies2$Freq", fill = 0)
 
 ###########################################################################
 # get topic modelling (LDA)
@@ -348,9 +400,26 @@ wordcloud(words = frequencies$Var1, frequencies$Freq, min.freq = 1,
           max.words=nrow(frequencies), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
 ```
 
+# Comparison wordcloud
+
+A wordcloud of the sentiment of text is provided below.
+
+```{r swc1, echo=FALSE, message=FALSE, warning=FALSE}
+# get sentiment wordcloud
+
+# for comparison cloud
+#senti_table_word <- senti_table_word %>%
+#  acast(text ~ sentiment, value.var = "frequencies$Freq", fill = 0)
+
+comparison.cloud(term.matrix = senti_table_word, colors=c("gray20","gray80"))
+
+#wordcloud(words = frequencies$Var1, frequencies$Freq, min.freq = 1,           
+#          max.words=nrow(frequencies), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
+```
+
 # Count of two word phrases - top 5
 
-The top 5 two-word phrases, by the number of times they appear are below. There are `r nrow(frequencies2)` two word phrases.
+The top 5 2-word phrases, by the number of times they appear are below. There are `r nrow(frequencies2)` two word phrases.
 
 ```{r graph2, echo=FALSE}
 dat_to_use <- frequencies_2[1:10,]
@@ -358,13 +427,11 @@ dat_to_use <- frequencies_2[1:10,]
 # split space as new line
 dat_to_use$`Var1` <- gsub(" ", "\n", dat_to_use$`Var1`)
 
-# sort by values
-dat_to_use <- dat_to_use[order(-dat_to_use$`Freq`),]
-
 r_bar_graph_function(dat_to_use,dat_to_use$`Var1`,dat_to_use$`Freq`,"Phrase","Count","Top 5 two word phrases")
 r_bar_graph_function_flip(dat_to_use,dat_to_use$`Var1`,dat_to_use$`Freq`,"Phrase","Count","Top 5 two word phrases")
 
 ```
+
 # Count of unique phrases by type
 It may not look like it, but there are `r sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq))` datapoints on this graph.
 <br>
@@ -400,6 +467,22 @@ A wordcloud of the text is provided below.
 wordcloud(words = frequencies_2$Var1, frequencies_2$Freq, min.freq = 1,           
           max.words=nrow(frequencies_2), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
 ```
+# Comparison two-phrase wordcloud
+
+A wordcloud of the sentiment of text is provided below.
+
+```{r swc2, echo=FALSE, message=FALSE, warning=FALSE}
+# get sentiment wordcloud
+
+# for comparison cloud
+#senti_table_word <- senti_table_word %>%
+#  acast(text ~ sentiment, value.var = "frequencies$Freq", fill = 0)
+
+comparison.cloud(term.matrix = senti_table_bigram, colors=c("gray20","gray80"))
+
+#wordcloud(words = frequencies$Var1, frequencies$Freq, min.freq = 1,           
+#          max.words=nrow(frequencies), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
+```
 
 # Sentiment of text
 
@@ -410,7 +493,6 @@ r_bar_graph_function(score_type_tot,score_type_tot$`sentiment`,score_type_tot$`c
 ```
 
 Below is the table of text and associated sentiment
-
 ```{r, echo=FALSE}
 datatable(senti_table, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
