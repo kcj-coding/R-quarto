@@ -1,13 +1,16 @@
 ---
-format: html
-#toc: true
-toc-location: left
+output: 
+  html_document:
+    theme: cerulean # united - themes from https://bootswatch.com/3/
+    toc: true
+    toc_float: true
+    #toc_depth: 2 # see https://bookdown.org/yihui/rmarkdown/html-document.html
 editor: source
 date: "`r Sys.Date()`"
 self-contained: true # true so that only 1 file is generated (not folder of files)
 params:
   set_title: "title"
-title:  "`r paste(tools::toTitleCase(params$set_title), 'Investigation')`"
+title:  "`r paste(tools::toTitleCase(params$set_title), 'file')`" # or can be i from loop
 ---
 
 ```{r setup, include = FALSE}

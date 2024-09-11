@@ -11,8 +11,8 @@ self-contained: true # true so that only 1 file is generated (not folder of file
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F, message = F)
 #library(GGally)
-#library(ggraph)
-#library(igraph)
+library(ggraph)
+library(igraph)
 library(Matrix)
 #library(network)
 library(tidyverse)
@@ -36,9 +36,18 @@ library(reshape2)
 ```{r code,include=FALSE, echo=FALSE}
 
 # load data csv, xlsx or text
-text <- "Red Funnel was formed in 1861 as the ‘Original Isle of Wight ferry operator’. Today, we carry 3.4M passengers and 860,000 vehicles across the Solent each year. The Company operates 365 days a year, with 30,000 sailings between Southampton on the UK mainland and East and West Cowes on the Isle of Wight. Our fleet consists of modern purpose-built Ro-Pax vehicle ferries and Red Jet Hi-Speed passenger catamarans. Catering and retail services are provided in-house.
+text <- "The story began in 1820 when scheduled year-round Steam Packet Services started operating between Southampton, Cowes, Ryde, Southsea and Portsmouth Harbour. Excursion Services were also a mainstay activity during those balmy Victorian and Edwardian summers with daily trips along the South Coast and across the channel to France. In the 1900's, the growing interest in travel provided the Company with an important string to its bow - the provision of tendering services to the great passenger liners.
+
+Many would anchor in Cowes Roads and use Red Funnel's steamers for alighting passengers and transferring all kinds of cargo. In 1885 the Company expanded into Tug Ownership and continued to consolidate its market position throughout the wars. After World War II, recession and changing holiday habits led to the decline of the excursion business and preoccupation with the Southampton-Cowes packet services, particularly in light of growing car ownership and the transfer of cargo onto wheels. Diesel propulsion marked a turning point in the Company's history with the first purpose-built diesel vehicle ferries joining the fleet in the 1950's.
+
+Drawing from the Company's archives, this microsite offers a nostalgic insight into cross-Solent travel since the 1820's. It's rare for a firm to have survived for so long, and the Company is rightly proud of its illustrious history and grateful to those who've played a part
+
+Red Funnel was formed in 1861 as the ‘Original Isle of Wight ferry operator’. Today, we carry 3.4M passengers and 860,000 vehicles across the Solent each year. The Company operates 365 days a year, with 30,000 sailings between Southampton on the UK mainland and East and West Cowes on the Isle of Wight. Our fleet consists of modern purpose-built Ro-Pax vehicle ferries and Red Jet Hi-Speed passenger catamarans. Catering and retail services are provided in-house.
 
 We are proud to offer our customers award-winning ferry travel to the Isle of Wight. If you’re looking to take a UK break somewhere beautiful, we’ll sail you from Southampton to the Isle of Wight in under an hour with a vehicle, or 30 minutes if you’re travelling as a foot passenger. You’ll enjoy a range of onboard facilities during a vehicle ferry crossing, including our premium Signature Lounge, pet-friendly lounge, licensed bar, café and retail shop plus outdoor sun decks.Aside from getting to the Isle of Wight, we also offer a range of fantastic IOW holiday and accommodation deals, alongside discounted attraction and event tickets plus a host of special offers for the perfect trip to the Island. All that’s left to do now is explore what you could enjoy during a visit and book your ferry to the Isle of Wight."
+
+# make lowercase
+#text <- tolower(text)
 
 text <- data.frame(text=text)
 file <- "text found on https://www.redfunnel.co.uk"
@@ -64,6 +73,10 @@ text_df <- text
 }
 
 text <- text_df$text
+
+# make numbers and letters only
+#text <- gsub("([^a-zA-Z0-9])+", " ", text_df$text)
+#text_df$text <- gsub("([^a-zA-Z0-9])+", " ", text_df$text)
 
 type <- "Term" # specify Document or Term for data types
 
@@ -278,6 +291,64 @@ word1_asso <- word1_asso %>%
 word1_asso_graph <- word1_asso[1:10,] %>%
   ggplot(aes(x=reorder(word,word1_asso[1:10,1]),y=word1_asso[1:10,1])) + geom_point(size=4) + 
   coord_flip() + ylab('Correlation') + xlab('Term')
+
+###########################################################################
+
+# tf-idf for all unigram (single) words
+tfidf_words <- text_df %>%
+  mutate(document=file)
+
+# unnest_tokens
+tfidf_words <- tfidf_words %>%
+  unnest_tokens(word, text) %>%
+  count(document, word, sort = TRUE)
+
+# compare to total
+total_words <- tfidf_words %>%
+  group_by(document) %>%
+  summarize(total = sum(n))
+
+tfidf_words <- left_join(tfidf_words, total_words)
+
+tfidf_words <- tfidf_words %>%
+  bind_tf_idf(word, document, n)
+
+###########################################################################
+
+# tf-idf for all bigram (two) words
+tfidf_bigram <- text_df %>%
+  mutate(document=file)
+
+# unnest_tokens
+tfidf_bigram <- tfidf_bigram %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+  filter(!is.na(bigram)) %>%
+  count(document, bigram, sort = TRUE)
+
+# compare to total
+total_bigram <- tfidf_bigram %>%
+  group_by(document) %>%
+  summarize(total = sum(n))
+
+tfidf_bigram <- left_join(tfidf_bigram, total_bigram)
+
+tfidf_bigram <- tfidf_bigram %>%
+  bind_tf_idf(bigram, document, n)
+
+################################################################################
+
+# get bigram as separate words and get count of these
+bigrams_separated <- tfidf_bigram %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+
+################################################################################
+
+# bigram network graph
+bigram_graph <- select(bigrams_separated, word1, word2, n) %>%
+  filter(n > 1) %>%
+  graph_from_data_frame()
+
 ```
 
 ```{r functions, include=FALSE, echo=FALSE}
@@ -321,7 +392,7 @@ r_bar_graph_function_flip <- function(df,x_df,y_df,xlab,ylab,title){
 
 r_scatter_plot_function <- function(df,x_df,y_df,xlab,ylab,title){
   tt <- ggplot(df,aes(x=x_df,y=y_df, color=y_df))+
-    geom_point(position="identity",stat="identity")+
+    #geom_point(position="identity",stat="identity")+ # to avoid duplication
     geom_jitter()+
     #scale_x_continuous(breaks=0:max(y_df))+
     coord_flip()+
@@ -350,6 +421,40 @@ word1_asso_graph <- word1[1:10,] %>%
   ylim(min(word1[1:10,1]),1)+
   labs(x="Word",y="Correlation score",title=paste("Top 10 words associated with ",word,sep=""))
 return(word1_asso_graph)
+}
+
+####################################################################################################
+
+tfidf_graph <- function(df){
+  tt <- ggplot(df, aes(n/total, fill = document)) +
+  geom_histogram(show.legend = FALSE) +
+  scale_fill_manual(values = "#cd2456")+
+  #xlim(NA, 0.0009) +
+  facet_wrap(~document, ncol = 2, scales = "free_y")+
+  theme_classic()
+return(tt)
+}
+
+####################################################################################################
+
+linked_words_graph <- function(df, word, ylab){
+  tt <- ggplot(df, aes(n * compound, word2, fill = n * compound > 0)) +
+  geom_col(show.legend = FALSE) +
+  theme_classic()+
+  labs(x = "Sentiment value * number of occurrences",
+       y = paste0(ylab, " ",word))
+return(tt)
+}
+
+####################################################################################################
+
+bigram_network_graph <- function(df){
+  tt <- ggraph(df, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1)+
+  theme_void()
+return(tt)
 }
 
 ####################################################################################################
@@ -411,10 +516,20 @@ A wordcloud of the sentiment of text is provided below.
 #senti_table_word <- senti_table_word %>%
 #  acast(text ~ sentiment, value.var = "frequencies$Freq", fill = 0)
 
-comparison.cloud(term.matrix = senti_table_word, colors=c("gray20","gray80"))
+comparison.cloud(term.matrix = senti_table_word, colors=c("gray20","gray50", "grey80"))
 
 #wordcloud(words = frequencies$Var1, frequencies$Freq, min.freq = 1,           
 #          max.words=nrow(frequencies), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
+```
+
+# TF-IDF of unigram (single) words
+
+This graph shows the tf-idf (term-frequency inverse-document frequency) of single words. Words that repeat often have a lower score, and a higher count of words.
+
+```{r tfidfgraph1, echo=FALSE}
+dat_to_use <- tfidf_words
+tfidf_graph(dat_to_use)
+
 ```
 
 # Count of two word phrases - top 5
@@ -433,15 +548,9 @@ r_bar_graph_function_flip(dat_to_use,dat_to_use$`Var1`,dat_to_use$`Freq`,"Phrase
 ```
 
 # Count of unique phrases by type
-It may not look like it, but there are `r sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq))` datapoints on this graph.
-<br>
-Of these:
-<br>
-Unigram is: `r sum(as.numeric(frequencies1$Freq))` which is `r round(sum(as.numeric(frequencies1$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
-<br>
-Biigram is: `r sum(as.numeric(frequencies2$Freq))` which is `r round(sum(as.numeric(frequencies2$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
-<br>
-Trigram is: `r sum(as.numeric(frequencies3$Freq))` which is `r round(sum(as.numeric(frequencies3$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
+
+It may not look like it, but there are `r sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq))` datapoints on this graph. <br> Of these: <br> Unigram is: `r sum(as.numeric(frequencies1$Freq))` which is `r round(sum(as.numeric(frequencies1$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total <br> Bigram is: `r sum(as.numeric(frequencies2$Freq))` which is `r round(sum(as.numeric(frequencies2$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total <br> Trigram is: `r sum(as.numeric(frequencies3$Freq))` which is `r round(sum(as.numeric(frequencies3$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
+
 ```{r unqphrase, echo=FALSE, message=FALSE, warning=FALSE}
 
 # join all types together
@@ -467,6 +576,7 @@ A wordcloud of the text is provided below.
 wordcloud(words = frequencies_2$Var1, frequencies_2$Freq, min.freq = 1,           
           max.words=nrow(frequencies_2), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
 ```
+
 # Comparison two-phrase wordcloud
 
 A wordcloud of the sentiment of text is provided below.
@@ -478,10 +588,30 @@ A wordcloud of the sentiment of text is provided below.
 #senti_table_word <- senti_table_word %>%
 #  acast(text ~ sentiment, value.var = "frequencies$Freq", fill = 0)
 
-comparison.cloud(term.matrix = senti_table_bigram, colors=c("gray20","gray80"))
+comparison.cloud(term.matrix = senti_table_bigram, colors=c("gray20","gray50", "gray80"))
 
 #wordcloud(words = frequencies$Var1, frequencies$Freq, min.freq = 1,           
 #          max.words=nrow(frequencies), random.order=FALSE, rot.per=0.35, random.color = TRUE, colors=brewer.pal(8, "Dark2"))
+```
+
+# TF-IDF of bigram (two) words
+
+This graph shows the tf-idf (term-frequency inverse-document frequency) of single words. Words that repeat often have a lower score, and a higher count of words.
+
+```{r tfidfgraph2, echo=FALSE}
+dat_to_use <- tfidf_bigram
+tfidf_graph(dat_to_use)
+
+```
+
+# Network graph of bigrams that occur more than once
+
+This network graph shows the linkages used between two word phrases which occur more than once in the text.
+
+```{r bigramntwrk, echo=FALSE}
+dat_to_use <- bigram_graph
+bigram_network_graph(dat_to_use)
+
 ```
 
 # Sentiment of text
@@ -492,7 +622,8 @@ The sentiment types of the text are shown below. There are `r length(unique(scor
 r_bar_graph_function(score_type_tot,score_type_tot$`sentiment`,score_type_tot$`count`,"Sentiment","Count","Count of sentiment")
 ```
 
-Below is the table of text and associated sentiment
+Below is the table of text and associated sentiment.
+
 ```{r, echo=FALSE}
 datatable(senti_table, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
@@ -521,7 +652,7 @@ datatable(top_sentences, extensions = 'Buttons', options = list(
 
 # Word associations for top 2 words
 
-## Word 1
+## Word 1 - `r top_words_asso[1]`
 
 Word 1 is `r top_words_asso[1]` and the top 10 words associated with it are below
 
@@ -530,11 +661,131 @@ word1_choice <- top_words_asso[1]
 word_asso_graph_function(word1_choice)
 ```
 
-## Word 2
+## Word 2 - `r top_words_asso[2]`
 
 Word 2 is `r top_words_asso[2]` and the top 10 words associated with it are below
 
 ```{r word2, echo=FALSE}
 word2_choice <- top_words_asso[2]
 word_asso_graph_function(word2_choice)
+```
+
+# Get value and sentiment of words preceded by these top 2 words
+
+## Word 1 - `r top_words_asso[1]`
+
+```{r asso_words_value1, echo=FALSE}
+
+# get words linked to this word *** word 1
+asso_words_value <- bigrams_separated %>%
+  filter(word1 == top_words_asso[1]) # filter matches to only include this word as word1
+
+# then, get VADER sentiment for word2
+vader_score_bigram_test <- vader_df(asso_words_value$word2)
+vader_score_bigram_test <- select(vader_score_bigram_test,text,compound)#vader_score$compound
+
+# replace 0 values with 0.01
+vader_score_bigram_test$compound <- ifelse(vader_score_bigram_test$compound == 0,0.01, vader_score_bigram_test$compound)
+
+# join data
+asso_words_value <- cbind(asso_words_value, vader_score_bigram_test)
+
+asso_words_value_graph <- asso_words_value %>%
+  mutate(contribution = n * compound) %>%
+  arrange(desc(abs(contribution))) %>%
+  head(20) %>%
+  mutate(word2 = reorder(word2, contribution))
+
+# graph this
+linked_words_graph(asso_words_value_graph, top_words_asso[1], "Words preceded by")
+
+```
+
+## Word 2 - `r top_words_asso[2]`
+
+```{r asso_words_value2, echo=FALSE}
+
+# get words linked to this word
+asso_words_value <- bigrams_separated %>%
+  filter(word1 == top_words_asso[2]) # filter matches to only include this word as word1
+
+# then, get VADER sentiment for word2
+vader_score_bigram_test <- vader_df(asso_words_value$word2)
+vader_score_bigram_test <- select(vader_score_bigram_test,text,compound)#vader_score$compound
+
+# replace 0 values with 0.01
+vader_score_bigram_test$compound <- ifelse(vader_score_bigram_test$compound == 0,0.01, vader_score_bigram_test$compound)
+
+# join data
+asso_words_value <- cbind(asso_words_value, vader_score_bigram_test)
+
+asso_words_value_graph <- asso_words_value %>%
+  mutate(contribution = n * compound) %>%
+  arrange(desc(abs(contribution))) %>%
+  head(20) %>%
+  mutate(word2 = reorder(word2, contribution))
+
+# graph this
+linked_words_graph(asso_words_value_graph, top_words_asso[2], "Words preceded by")
+
+```
+
+# Get value and sentiment of words followed by these top 2 words
+
+## Word 1 - `r top_words_asso[1]`
+
+```{r asso_words1_value1, echo=FALSE}
+
+# get words linked to this word *** word 1
+asso_words_value <- bigrams_separated %>%
+  filter(word2 == top_words_asso[1]) # filter matches to only include this word as word1
+
+# then, get VADER sentiment for word2
+vader_score_bigram_test <- vader_df(asso_words_value$word1)
+vader_score_bigram_test <- select(vader_score_bigram_test,text,compound)#vader_score$compound
+
+# replace 0 values with 0.01
+vader_score_bigram_test$compound <- ifelse(vader_score_bigram_test$compound == 0,0.01, vader_score_bigram_test$compound)
+
+# join data
+asso_words_value <- cbind(asso_words_value, vader_score_bigram_test)
+
+asso_words_value_graph <- asso_words_value %>%
+  mutate(contribution = n * compound) %>%
+  arrange(desc(abs(contribution))) %>%
+  head(20) %>%
+  mutate(word2 = reorder(word1, contribution))
+
+# graph this
+linked_words_graph(asso_words_value_graph, top_words_asso[1], "Words followed by")
+
+```
+
+## Word 2 - `r top_words_asso[2]`
+
+```{r asso_words1_value2, echo=FALSE}
+
+# get words linked to this word
+asso_words_value <- bigrams_separated %>%
+  filter(word2 == top_words_asso[2]) # filter matches to only include this word as word1
+
+# then, get VADER sentiment for word2
+vader_score_bigram_test <- vader_df(asso_words_value$word1)
+vader_score_bigram_test <- select(vader_score_bigram_test,text,compound)#vader_score$compound
+
+# replace 0 values with 0.01
+vader_score_bigram_test$compound <- ifelse(vader_score_bigram_test$compound == 0,0.01, vader_score_bigram_test$compound)
+
+# join data
+asso_words_value <- cbind(asso_words_value, vader_score_bigram_test)
+
+asso_words_value_graph <- asso_words_value %>%
+  mutate(contribution = n * compound) %>%
+  arrange(desc(abs(contribution))) %>%
+  head(20) %>%
+  mutate(word2 = reorder(word1, contribution))
+
+# graph this
+linked_words_graph(asso_words_value_graph, top_words_asso[2], "Words followed by")
+
 ```
