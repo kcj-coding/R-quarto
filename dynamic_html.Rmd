@@ -1,0 +1,23 @@
+---
+format: html
+#toc: true
+toc-location: left
+editor: source
+date: "`r Sys.Date()`"
+self-contained: true # true so that only 1 file is generated (not folder of files)
+params:
+  set_title: "title"
+title:  "`r paste(tools::toTitleCase(params$set_title), 'Investigation')`"
+---
+
+```{r setup, include = FALSE}
+library(dplyr)
+```
+
+```{r code,include=FALSE, echo=FALSE}
+txt <- "abc"
+```
+
+# Some text
+
+Some more text is `r txt`.
