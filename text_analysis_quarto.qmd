@@ -9,7 +9,7 @@ self-contained: true # true so that only 1 file is generated (not folder of file
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, message = F)
+#knitr::opts_chunk$set(echo = F, message = F)
 #library(GGally)
 library(ggraph)
 library(igraph)
@@ -392,7 +392,7 @@ r_bar_graph_function_flip <- function(df,x_df,y_df,xlab,ylab,title){
 
 r_scatter_plot_function <- function(df,x_df,y_df,xlab,ylab,title){
   tt <- ggplot(df,aes(x=x_df,y=y_df, color=y_df))+
-    #geom_point(position="identity",stat="identity")+ # to avoid duplication
+    #geom_point(position="identity",stat="identity")+
     geom_jitter()+
     #scale_x_continuous(breaks=0:max(y_df))+
     coord_flip()+
@@ -402,7 +402,7 @@ r_scatter_plot_function <- function(df,x_df,y_df,xlab,ylab,title){
     #scale_color_brewer(palette="YlGn")+
     #scale_color_manual(values = c("blue","red"))+
     #theme(legend.position="none")+
-    labs(x=xlab,y=ylab,title=title)
+    labs(x=xlab,y=ylab,title=title, color="Count")
   return (tt)
 }
 
@@ -440,6 +440,7 @@ return(tt)
 linked_words_graph <- function(df, word, ylab){
   tt <- ggplot(df, aes(n * compound, word2, fill = n * compound > 0)) +
   geom_col(show.legend = FALSE) +
+  scale_fill_manual(values = "#cd2456")+
   theme_classic()+
   labs(x = "Sentiment value * number of occurrences",
        y = paste0(ylab, " ",word))
@@ -548,9 +549,15 @@ r_bar_graph_function_flip(dat_to_use,dat_to_use$`Var1`,dat_to_use$`Freq`,"Phrase
 ```
 
 # Count of unique phrases by type
-
-It may not look like it, but there are `r sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq))` datapoints on this graph. <br> Of these: <br> Unigram is: `r sum(as.numeric(frequencies1$Freq))` which is `r round(sum(as.numeric(frequencies1$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total <br> Bigram is: `r sum(as.numeric(frequencies2$Freq))` which is `r round(sum(as.numeric(frequencies2$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total <br> Trigram is: `r sum(as.numeric(frequencies3$Freq))` which is `r round(sum(as.numeric(frequencies3$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
-
+It may not look like it, but there are `r sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq))` datapoints on this graph.
+<br>
+Of these:
+<br>
+Unigram is: `r sum(as.numeric(frequencies1$Freq))` which is `r round(sum(as.numeric(frequencies1$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
+<br>
+Bigram is: `r sum(as.numeric(frequencies2$Freq))` which is `r round(sum(as.numeric(frequencies2$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
+<br>
+Trigram is: `r sum(as.numeric(frequencies3$Freq))` which is `r round(sum(as.numeric(frequencies3$Freq))/sum(as.numeric(frequencies1$Freq), as.numeric(frequencies2$Freq), as.numeric(frequencies3$Freq)), 2)*100`% of the total
 ```{r unqphrase, echo=FALSE, message=FALSE, warning=FALSE}
 
 # join all types together
@@ -623,7 +630,6 @@ r_bar_graph_function(score_type_tot,score_type_tot$`sentiment`,score_type_tot$`c
 ```
 
 Below is the table of text and associated sentiment.
-
 ```{r, echo=FALSE}
 datatable(senti_table, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
