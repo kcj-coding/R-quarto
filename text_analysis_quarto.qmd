@@ -74,6 +74,10 @@ text_df <- text
 
 text <- text_df$text
 
+# filter out blank or 1 nchar values
+text_df <- text_df |>
+  filter(text != "" & nchar(text) > 1)
+
 # make numbers and letters only
 #text <- gsub("([^a-zA-Z0-9])+", " ", text_df$text)
 #text_df$text <- gsub("([^a-zA-Z0-9])+", " ", text_df$text)
@@ -355,7 +359,7 @@ bigram_graph <- select(bigrams_separated, word1, word2, n) %>%
 
 r_nchar_histogram_function <- function(df,x_df){
   tt <- ggplot(df,aes(x=x_df))+
-    geom_histogram(binwidth = 1, alpha = 0.8)+
+    geom_histogram(binwidth = 1, alpha = 0.8, fill="#CD2456")+
     theme_classic()+
     labs(x="Number of characters per paragraph",y="Number of paragraphs")
   return (tt)
@@ -415,8 +419,9 @@ word1 <- word1 %>%
   mutate(word = rownames(word1))
 
 word1_asso_graph <- word1[1:10,] %>%
-  ggplot(aes(x=reorder(word,word1[1:10,1]),y=word1[1:10,1])) + geom_point(size=4) + 
+  ggplot(aes(x=reorder(word,word1[1:10,1]),y=word1[1:10,1])) + geom_point(size=4,color="#CD2456") + 
   coord_flip()+
+  #scale_fill_manual("#CD2456")+
   theme_classic()+
   ylim(min(word1[1:10,1]),1)+
   labs(x="Word",y="Correlation score",title=paste("Top 10 words associated with ",word,sep=""))
@@ -440,7 +445,7 @@ return(tt)
 linked_words_graph <- function(df, word, ylab){
   tt <- ggplot(df, aes(n * compound, word2, fill = n * compound > 0)) +
   geom_col(show.legend = FALSE) +
-  scale_fill_manual(values = "#cd2456")+
+  scale_fill_manual(values=alpha(c("#CD2456","#14022E")))+
   theme_classic()+
   labs(x = "Sentiment value * number of occurrences",
        y = paste0(ylab, " ",word))
@@ -477,6 +482,16 @@ topic_models_graph <- function(){
 # Word text analysis
 
 For the text from `r file` some analysis has been completed. This is shown below.
+
+# Table of words used
+
+Below is the table of words and associated counts.
+```{r table_words, echo=FALSE}
+datatable(select(frequencies1,-type), extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  ))
+```
 
 # Number of characters per sentence/paragraph
 
@@ -630,7 +645,7 @@ r_bar_graph_function(score_type_tot,score_type_tot$`sentiment`,score_type_tot$`c
 ```
 
 Below is the table of text and associated sentiment.
-```{r, echo=FALSE}
+```{r table_sentiment, echo=FALSE}
 datatable(senti_table, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
