@@ -118,6 +118,23 @@ frequencies<-as.data.frame(as.table(word.freq))
 frequencies1 <- data.frame(lapply(frequencies, as.character), stringsAsFactors=FALSE)
 frequencies1$type <- "unigram\n one word"
 
+### similar words
+# get a list of words which have the same starting 3 letters to compare types and spellings
+wrd_chkr <- select(frequencies1, -type)
+
+# order by spelling
+wrd_chkr <- wrd_chkr[order(wrd_chkr$Var1),]
+
+# get next word entry (lead) and compare first 3 chars
+#wrd_chkr$nxt <- lead(wrd_chkr$Var1, 1)
+
+wrd_chkr$compar <- ifelse(substr(wrd_chkr$Var1,1,3)==substr(lag(wrd_chkr$Var1,1),1,3), "keep", 
+                          ifelse(substr(wrd_chkr$Var1,1,3)==substr(lead(wrd_chkr$Var1,1),1,3), "keep","remove"))
+
+wrd_chkr <- wrd_chkr |> filter(compar == "keep")
+
+wrd_chkr <- select(wrd_chkr, -compar)
+
 ###########################################################################
 # get count of 2 word phrases
 BigramTokenizer <-
@@ -493,6 +510,16 @@ For the text from `r file` some analysis has been completed. This is shown below
 Below is the table of words and associated counts.
 ```{r table_words, echo=FALSE}
 datatable(select(frequencies1,-type), extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  ))
+```
+
+# Estimated similar words
+
+Below is the table of estimated similar words used (first 3 letters are the same).
+```{r similar_words, echo=FALSE}
+datatable(wrd_chkr, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
   ))
