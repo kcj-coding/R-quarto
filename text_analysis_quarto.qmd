@@ -72,11 +72,16 @@ if (split_by_sentence == "Yes"){
 text_df <- text
 }
 
-text <- text_df$text
+# remove multiple whitespaces
+#text_df$text <- str_replace_all("\\s+", " ", text_df$text)
+text_df$text <- sub("\\s+", " ", text_df$text, perl=TRUE)
 
 # filter out blank or 1 nchar values
 text_df <- text_df |>
   filter(text != "" & nchar(text) > 1)
+
+text <- text_df$text
+
 
 # make numbers and letters only
 #text <- gsub("([^a-zA-Z0-9])+", " ", text_df$text)
