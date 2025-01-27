@@ -136,6 +136,21 @@ wrd_chkr <- wrd_chkr |> filter(compar == "keep")
 wrd_chkr <- select(wrd_chkr, -compar)
 
 ###########################################################################
+
+# get counts of types of characters used
+print(text)
+nbrs <- nchar(gsub("[A-Za-z\\D]","",text, perl=TRUE)) # select everything except numbers
+
+lttrs <- nchar(gsub("[\\W]","",text, perl=TRUE)) # select everything except letters
+
+specials <- nchar(gsub("[A-Za-z0-9\\s+]","",text, perl=TRUE)) # select everything except words and numbers and spaces
+
+x_vals <- c("characters","numbers","specials")
+y_vals <- c(sum(lttrs), sum(nbrs), sum(specials))
+
+df_counts <- data.frame(x_vals=x_vals, y_vals=y_vals)
+
+###########################################################################
 # get count of 2 word phrases
 BigramTokenizer <-
   function(x)
@@ -530,6 +545,16 @@ datatable(wrd_chkr, extensions = 'Buttons', options = list(
 ```{r hist1, echo=FALSE}
 dat_to_use <- text_df
 r_nchar_histogram_function(dat_to_use,nchar(dat_to_use$`text`))
+
+```
+
+# Types of characters used
+
+The number and types of character used are indicated below.
+
+```{r graph11111, echo=FALSE}
+dat_to_use <- df_counts
+r_bar_graph_function(dat_to_use,dat_to_use$`x_vals`,dat_to_use$`y_vals`,"Character type","Count","Types of characters used")
 
 ```
 
