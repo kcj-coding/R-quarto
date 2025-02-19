@@ -245,7 +245,8 @@ t <- ggplot(df_ices,aes(x=type,y=sales))+
   theme_classic()+
   labs(y="sales/thou",x="season")
 
-ggplotly(t)
+ggplotly(t) |>
+  layout(width="100%", height="100%")
 ```
 
 :::
